@@ -10,6 +10,8 @@ def uprint(s):
 BASE_URL = "https://earthview.withgoogle.com/"
 START_JSON = "/_api/kane-county-united-states-1256.json"
 
+f = open('out.txt', 'wb')
+
 cur_json_url = START_JSON
 i = -1
 while True:
@@ -18,8 +20,13 @@ while True:
     ret = urllib.request.urlopen(url).read()
     rets = ret.decode('utf-8')
     js = json.loads(rets)
+    f.write(cur_json_url.encode('utf-8'))
+    f.write('\r\n'.encode('utf-8'))
+    f.flush()
     uprint('{:03}: "{}": {}'.format(i, js['title'], js['photoUrl']))
     cur_json_url = js['nextApi']
     if cur_json_url == START_JSON:
         print('Back to beginning.. Exiting.')
         break;
+
+f.close()
