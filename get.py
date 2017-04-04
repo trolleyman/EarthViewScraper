@@ -1,32 +1,55 @@
-import json
+#!/usr/bin/env python3
+
+'''
+Gets all of the photos referenced in the json directory
+'''
+
 import urllib.request
-import urllib.parse
+
+import os
+import json
 import sys
 
 def uprint(s):
     sys.stdout.buffer.write(s.encode(sys.stdout.encoding, errors='replace'))
     print('')
 
-BASE_URL = "https://earthview.withgoogle.com/"
-START_JSON = "/_api/kane-county-united-states-1256.json"
+JSON_DIR = 'json'
+PHOTO_DIR = 'photos'
 
-f = open('out.txt', 'wb')
+# Setup folders
+if not os.path.isdir(PHOTO_DIR):
+    if os.path.exists(PHOTO_DIR):
+        os.remove(PHOTO_DIR)
+    os.makedirs(PHOTO_DIR)
 
-cur_json_url = START_JSON
-i = -1
-while True:
+photo_urls = []
+i = 0
+
+for path in os.listdir(JSON_DIR):
+    if not path.endswith('.json'):
+        continue
+    
+    # Load JSON file
+    file = open('{}/{}'.format(JSON_DIR, path), 'rb')
+    json_data = file.read()
+    file.close()
+    json_str = json_data.decode('utf-8')
+    js = json.loads(json_str)
+    
+    # Download JPG
+    photo_data = urllib.request.urlopen(js['photoUrl']).read()
+    
+    # Calculate title
+    striplen = len(' – Earth View from Google');
+    title = js['title'][0:-striplen]
+    
+    # Save to file in photo/<id>
+    photo_id = int(js['id'])
+    filename = '{:04} - {} ({}, {}).jpg'.format(photo_id, title, js['lat'], js['lng'])
+    path_out = '{}/{}'.format(PHOTO_DIR, filename)
+    uprint('{:04}: {}'.format(i, filename))
     i += 1
-    url = BASE_URL + urllib.parse.quote(cur_json_url, encoding='utf-8')
-    ret = urllib.request.urlopen(url).read()
-    rets = ret.decode('utf-8')
-    js = json.loads(rets)
-    f.write(cur_json_url.encode('utf-8'))
-    f.write('\r\n'.encode('utf-8'))
-    f.flush()
-    uprint('{:03}: "{}": {}'.format(i, js['title'], js['photoUrl']))
-    cur_json_url = js['nextApi']
-    if cur_json_url == START_JSON:
-        print('Back to beginning.. Exiting.')
-        break;
-
-f.close()
+    out = open(path_out, 'wb')
+    out.write(photo_data)
+    out.close()
